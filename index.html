@@ -178,7 +178,7 @@
         message: document.getElementById('res-message')
     };
 
-    const apiBase = 'https://general-unlocker.com/testsifan/index.php?Data=';
+    const apiBase = 'proxy.php?imei=';
 
     const setStatus = (message, type = '') => {
         statusBox.textContent = message;
@@ -219,7 +219,7 @@
         setStatus('جارٍ جلب البيانات ...');
 
         try {
-            const response = await fetch(apiBase + imei, {cache: 'no-store'});
+            const response = await fetch(apiBase + encodeURIComponent(imei), {cache: 'no-store'});
             if (!response.ok) {
                 throw new Error('تعذر الوصول إلى الخدمة');
             }
