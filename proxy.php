@@ -4,7 +4,6 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 
 $imei = $_GET['imei'] ?? '';
-
 $baseResponse = ['imei' => $imei];
 
 if (!preg_match('/^\d{15}$/', $imei)) {
@@ -26,6 +25,59 @@ function extractDeviceResult(string $xml): ?array
     }
 
     return json_decode(json_encode($nodes[0]), true) ?? null;
+}
+
+function fieldValue(array $source, string $key): ?string
+{
+    if (!array_key_exists($key, $source)) {
+        return null;
+    }
+    $value = $source[$key];
+
+    if (is_array($value)) {
+        $value = array_filter($value, static function ($item) {
+            if (is_array($item)) {
+                return !empty(array_filter($item, static fn($nested) => $nested !== null && $nested !== '' && $nested !== []));
+            }
+            return $item !== null && $item !== '' && $item !== [];
+        });
+
+        if (empty($value)) {
+            return null;
+        }
+
+        $value = reset($value);
+    }
+
+    if ($value === null) {
+        return null;
+    }
+
+    $value = trim((string)$value);
+
+    return $value === '' ? null : $value;
+}
+
+function orNo(?string $value): string
+{
+    return $value === null ? 'NO' : $value;
+}
+
+function normalizeRawValue($value)
+{
+    if (is_array($value)) {
+        if (empty($value)) {
+            return 'NO';
+        }
+        $normalized = [];
+        foreach ($value as $k => $v) {
+            $normalized[$k] = normalizeRawValue($v);
+        }
+        return $normalized;
+    }
+
+    $value = trim((string)$value);
+    return $value === '' ? 'NO' : $value;
 }
 
 $soapPayload = <<<XML
@@ -79,43 +131,53 @@ if (!is_array($resultNode)) {
     exit;
 }
 
+$model = fieldValue($resultNode, 'carrier_model_info') ?? fieldValue($resultNode, 'external_marketing_name');
+$carrier = fieldValue($resultNode, 'ship_to_cust_name')
+    ?? fieldValue($resultNode, 'sold_to_cust_name')
+    ?? fieldValue($resultNode, 'direct_ship_cust_name')
+    ?? $model;
+$country = fieldValue($resultNode, 'country_to_ship')
+    ?? fieldValue($resultNode, 'direct_ship_country_code')
+    ?? fieldValue($resultNode, 'warranty_country_code');
+
+$rawUnlock = fieldValue($resultNode, 'master_service_lock')
+    ?? fieldValue($resultNode, 'master_lock_code')
+    ?? fieldValue($resultNode, 'deviceunlockcode');
+
+if ($rawUnlock !== null && strpos($imei, $rawUnlock) === 0 && strlen($rawUnlock) === 8) {
+    $rawUnlock = 'No Code';
+}
+
+$lock4 = fieldValue($resultNode, 'lock_4') ?? $rawUnlock;
+$lock5 = fieldValue($resultNode, 'lock_5');
+
 $derived = [
-    'imei' => $resultNode['serial_no'] ?? $imei,
-    'serial_no_type' => $resultNode['serial_no_type'] ?? 'IMEI',
-    'model' => $resultNode['carrier_model_info'] ?? $resultNode['external_marketing_name'] ?? null,
-    'carrier' => $resultNode['ship_to_cust_name']
-        ?? $resultNode['sold_to_cust_name']
-        ?? $resultNode['direct_ship_cust_name']
-        ?? $resultNode['carrier_model_info']
-        ?? null,
-    'country' => $resultNode['country_to_ship']
-        ?? $resultNode['direct_ship_country_code']
-        ?? $resultNode['warranty_country_code']
-        ?? null,
-    'unlock_code' => $resultNode['master_service_lock']
-        ?? $resultNode['master_lock_code']
-        ?? $resultNode['deviceunlockcode']
-        ?? null,
-    'lock_4' => $resultNode['lock_4'] ?? $resultNode['master_service_lock'] ?? null,
-    'lock_5' => $resultNode['lock_5'] ?? null,
-    'status' => $resultNode['status'] ?? $resultNode['status_code'] ?? null,
-    'device_type' => $resultNode['device_type'] ?? null,
-    'apc' => $resultNode['apc'] ?? null,
-    'message' => $resultNode['response_message'] ?? null,
+    'imei' => orNo(fieldValue($resultNode, 'serial_no') ?? $imei),
+    'serial_no_type' => orNo(fieldValue($resultNode, 'serial_no_type') ?? 'IMEI'),
+    'model' => orNo($model),
+    'carrier' => orNo($carrier),
+    'country' => orNo($country),
+    'unlock_code' => orNo($rawUnlock),
+    'lock_4' => orNo($lock4),
+    'lock_5' => orNo($lock5),
+    'status' => orNo(fieldValue($resultNode, 'status') ?? fieldValue($resultNode, 'status_code')),
+    'device_type' => orNo(fieldValue($resultNode, 'device_type')),
+    'apc' => orNo(fieldValue($resultNode, 'apc')),
+    'message' => orNo(fieldValue($resultNode, 'response_message')),
 ];
 
 $payload = array_merge($derived, [
     'customer' => [
-        'ship_to' => $resultNode['ship_to_cust_name'] ?? null,
-        'sold_to' => $resultNode['sold_to_cust_name'] ?? null,
-        'direct_ship' => $resultNode['direct_ship_cust_name'] ?? null,
+        'ship_to' => orNo(fieldValue($resultNode, 'ship_to_cust_name')),
+        'sold_to' => orNo(fieldValue($resultNode, 'sold_to_cust_name')),
+        'direct_ship' => orNo(fieldValue($resultNode, 'direct_ship_cust_name')),
     ],
     'country_codes' => [
-        'ship' => $resultNode['country_to_ship'] ?? null,
-        'direct' => $resultNode['direct_ship_country_code'] ?? null,
-        'warranty' => $resultNode['warranty_country_code'] ?? null,
+        'ship' => orNo(fieldValue($resultNode, 'country_to_ship')),
+        'direct' => orNo(fieldValue($resultNode, 'direct_ship_country_code')),
+        'warranty' => orNo(fieldValue($resultNode, 'warranty_country_code')),
     ],
-    'raw' => $resultNode,
+    'raw' => normalizeRawValue($resultNode),
 ]);
 
 echo json_encode($payload, JSON_UNESCAPED_UNICODE);

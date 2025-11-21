@@ -195,6 +195,16 @@
             letter-spacing: 0.04em;
         }
 
+        .result-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .result-actions button {
+            flex: 1 1 140px;
+        }
+
         .result-body {
             margin-top: 14px;
         }
@@ -444,7 +454,17 @@
         copyBtn.textContent = 'نسخ النتيجة';
         copyBtn.disabled = true;
 
-        head.append(headInfo, copyBtn);
+        const copyPairBtn = document.createElement('button');
+        copyPairBtn.type = 'button';
+        copyPairBtn.className = 'ghost-btn';
+        copyPairBtn.textContent = 'نسخ IMEI + الكود';
+        copyPairBtn.disabled = true;
+
+        const actions = document.createElement('div');
+        actions.className = 'result-actions';
+        actions.append(copyBtn, copyPairBtn);
+
+        head.append(headInfo, actions);
         card.appendChild(head);
 
         const body = document.createElement('div');
@@ -452,7 +472,7 @@
         body.textContent = 'جارٍ الاستعلام ...';
         card.appendChild(body);
 
-        return {card, copyBtn, body};
+        return {card, copyBtn, copyPairBtn, body};
     };
 
     const renderSuccess = (cardObj, data) => {
@@ -517,6 +537,16 @@
         }
     };
 
+    const copyImeiCode = async (data) => {
+        const content = `IMEI: ${data.imei}\nMaster Service Lock: ${data.unlock_code}`;
+        try {
+            await navigator.clipboard.writeText(content);
+            setStatus('تم نسخ IMEI + الكود.', 'success');
+        } catch (error) {
+            setStatus('تعذر نسخ البيانات. يرجى السماح بالوصول إلى الحافظة.', 'error');
+        }
+    };
+
     const fetchForImei = async (imei) => {
         const response = await fetch(apiBase + encodeURIComponent(imei), {cache: 'no-store'});
         if (!response.ok) {
@@ -553,12 +583,15 @@
                 renderSuccess(cardObj, data);
                 cardObj.copyBtn.disabled = false;
                 cardObj.copyBtn.addEventListener('click', () => copyJson(data, `نتيجة IMEI ${imei}`));
+                cardObj.copyPairBtn.disabled = false;
+                cardObj.copyPairBtn.addEventListener('click', () => copyImeiCode(data));
             } catch (error) {
                 const errPayload = {imei, error: error.message || 'خطأ غير معروف'};
                 collected.push(errPayload);
                 renderError(cardObj, errPayload.error);
                 cardObj.copyBtn.disabled = false;
                 cardObj.copyBtn.addEventListener('click', () => copyJson(errPayload, `نتيجة IMEI ${imei}`));
+                cardObj.copyPairBtn.disabled = true;
             }
         }
 
