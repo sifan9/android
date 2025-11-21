@@ -5,73 +5,27 @@ header('Content-Type: application/json; charset=utf-8');
 
 $imei = $_GET['imei'] ?? '';
 
+$baseResponse = ['imei' => $imei];
+
 if (!preg_match('/^\d{15}$/', $imei)) {
-    echo json_encode(['error' => 'imei parameter must be a 15-digit number.']);
+    echo json_encode($baseResponse + ['error' => 'imei parameter must be a 15-digit number.']);
     exit;
 }
 
-function xmlToArray(string $xmlString): array
+function extractDeviceResult(string $xml): ?array
 {
-    $simple = @simplexml_load_string($xmlString, 'SimpleXMLElement', LIBXML_NOCDATA);
+    libxml_use_internal_errors(true);
+    $simple = @simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
     if ($simple === false) {
-        return [];
-    }
-
-    return json_decode(json_encode($simple), true) ?? [];
-}
-
-function stripNamespace(string $key): string
-{
-    return strpos($key, ':') !== false ? substr($key, strrpos($key, ':') + 1) : $key;
-}
-
-function normalizeKeys($data)
-{
-    if (!is_array($data)) {
-        return $data;
-    }
-
-    $normalized = [];
-
-    foreach ($data as $key => $value) {
-        $newValue = normalizeKeys($value);
-        $newKey = is_string($key) ? stripNamespace($key) : $key;
-
-        if (array_key_exists($newKey, $normalized)) {
-            if (!is_array($normalized[$newKey]) || array_keys($normalized[$newKey]) !== range(0, count($normalized[$newKey]) - 1)) {
-                $normalized[$newKey] = [$normalized[$newKey]];
-            }
-            $normalized[$newKey][] = $newValue;
-        } else {
-            $normalized[$newKey] = $newValue;
-        }
-    }
-
-    return $normalized;
-}
-
-function findDeviceResult($data)
-{
-    if (!is_array($data)) {
         return null;
     }
 
-    foreach ($data as $key => $value) {
-        $plainKey = is_string($key) ? stripNamespace($key) : $key;
-        if ($plainKey === 'device_unlock_code_result') {
-            if (is_array($value) && isset($value[0]) && is_array($value[0])) {
-                return $value[0];
-            }
-            return is_array($value) ? $value : null;
-        }
-
-        $found = findDeviceResult($value);
-        if ($found !== null) {
-            return $found;
-        }
+    $nodes = $simple->xpath('//*[local-name()="device_unlock_code_result"]');
+    if (!$nodes || !isset($nodes[0])) {
+        return null;
     }
 
-    return null;
+    return json_decode(json_encode($nodes[0]), true) ?? null;
 }
 
 $soapPayload = <<<XML
@@ -114,16 +68,14 @@ $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($errno !== 0 || $httpCode !== 200 || empty($response)) {
-    echo json_encode(['error' => 'Motorola service is unavailable right now.']);
+    echo json_encode($baseResponse + ['error' => 'Motorola service is unavailable right now.']);
     exit;
 }
 
-$parsed = xmlToArray(trim($response));
-$normalized = normalizeKeys($parsed);
-$resultNode = findDeviceResult($normalized);
+$resultNode = extractDeviceResult($response);
 
 if (!is_array($resultNode)) {
-    echo json_encode(['error' => 'Unable to parse Motorola response.']);
+    echo json_encode($baseResponse + ['error' => 'Unable to parse Motorola response.']);
     exit;
 }
 
