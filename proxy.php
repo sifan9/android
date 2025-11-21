@@ -50,6 +50,30 @@ function normalizeKeys($data)
     return $normalized;
 }
 
+function findDeviceResult($data)
+{
+    if (!is_array($data)) {
+        return null;
+    }
+
+    foreach ($data as $key => $value) {
+        $plainKey = is_string($key) ? stripNamespace($key) : $key;
+        if ($plainKey === 'device_unlock_code_result') {
+            if (is_array($value) && isset($value[0]) && is_array($value[0])) {
+                return $value[0];
+            }
+            return is_array($value) ? $value : null;
+        }
+
+        $found = findDeviceResult($value);
+        if ($found !== null) {
+            return $found;
+        }
+    }
+
+    return null;
+}
+
 $soapPayload = <<<XML
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     <s:Body>
@@ -96,22 +120,7 @@ if ($errno !== 0 || $httpCode !== 200 || empty($response)) {
 
 $parsed = xmlToArray(trim($response));
 $normalized = normalizeKeys($parsed);
-$body = $normalized['Envelope']['Body'] ?? null;
-$resultNode = null;
-
-if (is_array($body)) {
-    if (!empty($body['serviceResponse']['device_unlock_code_result'])) {
-        $resultNode = $body['serviceResponse']['device_unlock_code_result'];
-    } elseif (!empty($body['service_newResponse']['device_unlock_code_result'])) {
-        $resultNode = $body['service_newResponse']['device_unlock_code_result'];
-    } elseif (!empty($body['service']->{'device_unlock_code_result'})) {
-        $resultNode = $body['service']['device_unlock_code_result'];
-    }
-}
-
-if (is_array($resultNode) && isset($resultNode[0])) {
-    $resultNode = $resultNode[0];
-}
+$resultNode = findDeviceResult($normalized);
 
 if (!is_array($resultNode)) {
     echo json_encode(['error' => 'Unable to parse Motorola response.']);
