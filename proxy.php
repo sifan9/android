@@ -25,23 +25,29 @@ function stripNamespace(string $key): string
     return strpos($key, ':') !== false ? substr($key, strrpos($key, ':') + 1) : $key;
 }
 
-function findNode(array $data, string $targetKey): ?array
+function normalizeKeys($data)
 {
-    foreach ($data as $key => $value) {
-        $plainKey = is_string($key) ? stripNamespace($key) : $key;
-        if ($plainKey === $targetKey && is_array($value)) {
-            return $value;
-        }
+    if (!is_array($data)) {
+        return $data;
+    }
 
-        if (is_array($value)) {
-            $found = findNode($value, $targetKey);
-            if ($found !== null) {
-                return $found;
+    $normalized = [];
+
+    foreach ($data as $key => $value) {
+        $newValue = normalizeKeys($value);
+        $newKey = is_string($key) ? stripNamespace($key) : $key;
+
+        if (array_key_exists($newKey, $normalized)) {
+            if (!is_array($normalized[$newKey]) || array_keys($normalized[$newKey]) !== range(0, count($normalized[$newKey]) - 1)) {
+                $normalized[$newKey] = [$normalized[$newKey]];
             }
+            $normalized[$newKey][] = $newValue;
+        } else {
+            $normalized[$newKey] = $newValue;
         }
     }
 
-    return null;
+    return $normalized;
 }
 
 $soapPayload = <<<XML
@@ -89,9 +95,25 @@ if ($errno !== 0 || $httpCode !== 200 || empty($response)) {
 }
 
 $parsed = xmlToArray(trim($response));
-$resultNode = findNode($parsed, 'device_unlock_code_result');
+$normalized = normalizeKeys($parsed);
+$body = $normalized['Envelope']['Body'] ?? null;
+$resultNode = null;
 
-if ($resultNode === null) {
+if (is_array($body)) {
+    if (!empty($body['serviceResponse']['device_unlock_code_result'])) {
+        $resultNode = $body['serviceResponse']['device_unlock_code_result'];
+    } elseif (!empty($body['service_newResponse']['device_unlock_code_result'])) {
+        $resultNode = $body['service_newResponse']['device_unlock_code_result'];
+    } elseif (!empty($body['service']->{'device_unlock_code_result'})) {
+        $resultNode = $body['service']['device_unlock_code_result'];
+    }
+}
+
+if (is_array($resultNode) && isset($resultNode[0])) {
+    $resultNode = $resultNode[0];
+}
+
+if (!is_array($resultNode)) {
     echo json_encode(['error' => 'Unable to parse Motorola response.']);
     exit;
 }
