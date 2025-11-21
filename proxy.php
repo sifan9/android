@@ -10,26 +10,6 @@ if (!preg_match('/^\d{15}$/', $imei)) {
     exit;
 }
 
-function mungXml(string $xml): string
-{
-    $obj = @simplexml_load_string($xml);
-    if ($obj === false) {
-        return $xml;
-    }
-
-    $namespaces = $obj->getNamespaces(true);
-    if (empty($namespaces)) {
-        return $xml;
-    }
-
-    foreach (array_keys($namespaces) as $key) {
-        $pattern = '#(<\/?)' . preg_quote($key, '#') . ':#';
-        $xml = preg_replace($pattern, '$1' . $key . '_', $xml);
-    }
-
-    return $xml;
-}
-
 function xmlToArray(string $xmlString): array
 {
     $simple = @simplexml_load_string($xmlString, 'SimpleXMLElement', LIBXML_NOCDATA);
@@ -38,6 +18,30 @@ function xmlToArray(string $xmlString): array
     }
 
     return json_decode(json_encode($simple), true) ?? [];
+}
+
+function stripNamespace(string $key): string
+{
+    return strpos($key, ':') !== false ? substr($key, strrpos($key, ':') + 1) : $key;
+}
+
+function findNode(array $data, string $targetKey): ?array
+{
+    foreach ($data as $key => $value) {
+        $plainKey = is_string($key) ? stripNamespace($key) : $key;
+        if ($plainKey === $targetKey && is_array($value)) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            $found = findNode($value, $targetKey);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+    }
+
+    return null;
 }
 
 $soapPayload = <<<XML
@@ -84,20 +88,10 @@ if ($errno !== 0 || $httpCode !== 200 || empty($response)) {
     exit;
 }
 
-$cleanXml = mungXml(trim($response));
-$parsed = xmlToArray($cleanXml);
-$body = $parsed['Envelope']['Body'] ?? null;
+$parsed = xmlToArray(trim($response));
+$resultNode = findNode($parsed, 'device_unlock_code_result');
 
-$resultNode = null;
-if (is_array($body)) {
-    if (!empty($body['serviceResponse']['device_unlock_code_result'])) {
-        $resultNode = $body['serviceResponse']['device_unlock_code_result'];
-    } elseif (!empty($body['service_newResponse']['device_unlock_code_result'])) {
-        $resultNode = $body['service_newResponse']['device_unlock_code_result'];
-    }
-}
-
-if (!is_array($resultNode)) {
+if ($resultNode === null) {
     echo json_encode(['error' => 'Unable to parse Motorola response.']);
     exit;
 }
