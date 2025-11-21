@@ -215,23 +215,65 @@
             font-size: 0.92rem;
         }
 
-        .result-body th,
-        .result-body td {
+        .summary-table,
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        .summary-table th,
+        .summary-table td,
+        .detail-table th,
+        .detail-table td {
             padding: 8px 6px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             direction: ltr;
         }
 
-        .result-body th {
+        .summary-table th,
+        .detail-table th {
             text-align: right;
             color: #9fbed3;
             width: 40%;
             font-weight: 500;
         }
 
-        .result-body td {
+        .summary-table td,
+        .detail-table td {
             color: #f5f8fc;
             font-weight: 600;
+        }
+
+        .mini-title {
+            margin: 16px 0 6px;
+            font-size: 0.9rem;
+            color: #9fbed3;
+            font-weight: 600;
+        }
+
+        details {
+            margin-top: 16px;
+        }
+
+        details summary {
+            cursor: pointer;
+            color: #b9dfff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        details summary::marker {
+            color: #4db5ff;
+        }
+
+        code {
+            font-family: "Fira Code", "Consolas", monospace;
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 2px 4px;
+            border-radius: 4px;
         }
 
         .footer-note {
@@ -277,6 +319,52 @@
     const resultCount = document.getElementById('result-count');
 
     const apiBase = 'proxy.php?imei=';
+    const summaryFieldDefs = [
+        {key: 'model', label: 'موديل الجهاز'},
+        {key: 'carrier', label: 'شركة / ناقل الجهاز'},
+        {key: 'country', label: 'الدولة'},
+        {key: 'unlock_code', label: 'كود الفتح'},
+        {key: 'lock_4', label: 'Lock 4'},
+        {key: 'lock_5', label: 'Lock 5'},
+        {key: 'status', label: 'حالة الضمان'},
+        {key: 'device_type', label: 'نوع الجهاز'},
+        {key: 'apc', label: 'APC'},
+    ];
+    const customerLabels = {
+        ship_to: 'Ship To',
+        sold_to: 'Sold To',
+        direct_ship: 'Direct Ship',
+    };
+    const countryCodeLabels = {
+        ship: 'Country To Ship',
+        direct: 'Direct Ship Code',
+        warranty: 'Warranty Country',
+    };
+    const detailLabels = {
+        response_code: 'رمز الاستجابة',
+        response_message: 'رسالة الاستجابة',
+        serial_no: 'Serial Number',
+        serial_no_type: 'نوع الرقم',
+        status_code: 'رمز الحالة',
+        master_service_lock: 'Master Service Lock',
+        master_lock_code: 'Master Lock Code',
+        onetime_lock: 'One-Time Lock',
+        lock_4: 'Lock 4',
+        lock_5: 'Lock 5',
+        deviceunlockcode: 'Device Unlock Code',
+        service_password: 'Service Password',
+        device_type: 'نوع الجهاز',
+        carrier_model_info: 'Carrier Model Info',
+        external_marketing_name: 'اسم التسويق',
+        country_to_ship: 'Country to Ship',
+        direct_ship_country_code: 'Direct Ship Country Code',
+        warranty_country_code: 'Warranty Country Code',
+        ship_to_cust_name: 'Ship To Customer',
+        sold_to_cust_name: 'Sold To Customer',
+        direct_ship_cust_name: 'Direct Ship Customer',
+        apc: 'APC',
+        status: 'Status',
+    };
 
     const setStatus = (message, type = '') => {
         statusBox.textContent = message;
@@ -300,6 +388,22 @@
             '"': '&quot;',
             "'": '&#39;',
         }[char]));
+    };
+
+    const formatKey = (key) => detailLabels[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+
+    const stringifyValue = (value) => {
+        if (value === null || value === undefined || value === '') {
+            return '-';
+        }
+        if (Array.isArray(value) || typeof value === 'object') {
+            try {
+                return JSON.stringify(value, null, 2);
+            } catch (error) {
+                return String(value);
+            }
+        }
+        return String(value);
     };
 
     const parseImeis = (raw) => {
@@ -352,15 +456,51 @@
     };
 
     const renderSuccess = (cardObj, data) => {
+        const summaryRows = summaryFieldDefs
+            .map(({key, label}) => {
+                const value = data[key];
+                if (value === null || value === undefined || value === '') {
+                    return '';
+                }
+                return `<tr><th>${label}</th><td>${escapeHtml(value).replace(/\n/g, '<br>')}</td></tr>`;
+            })
+            .filter(Boolean)
+            .join('');
+
+        const customerRows = data.customer
+            ? Object.entries(data.customer)
+                .filter(([, value]) => value)
+                .map(([key, value]) => `<tr><th>${customerLabels[key] ?? key}</th><td>${escapeHtml(value)}</td></tr>`)
+                .join('')
+            : '';
+
+        const countryRows = data.country_codes
+            ? Object.entries(data.country_codes)
+                .filter(([, value]) => value)
+                .map(([key, value]) => `<tr><th>${countryCodeLabels[key] ?? key}</th><td>${escapeHtml(value)}</td></tr>`)
+                .join('')
+            : '';
+
+        const rawEntries = data.raw && typeof data.raw === 'object'
+            ? Object.entries(data.raw)
+            : [];
+
+        const detailRows = rawEntries
+            .map(([key, value]) => {
+                const printable = escapeHtml(stringifyValue(value)).replace(/\n/g, '<br>');
+                return `<tr><th>${formatKey(key)}</th><td>${printable}</td></tr>`;
+            })
+            .join('');
+
         cardObj.body.innerHTML = `
-            <p class="result-message">${escapeHtml(data.message ?? 'Success (API)')}</p>
-            <table>
+            <p class="result-message">${escapeHtml(data.message ?? 'تم جلب البيانات بنجاح.')}</p>
+            <table class="summary-table">
                 <tr><th>IMEI</th><td>${escapeHtml(data.imei)}</td></tr>
-                <tr><th>Model</th><td>${escapeHtml(data.model)}</td></tr>
-                <tr><th>Unlock Code</th><td>${escapeHtml(data.code)}</td></tr>
-                <tr><th>Lock 4</th><td>${escapeHtml(data.lock_4)}</td></tr>
-                <tr><th>Lock 5</th><td>${escapeHtml(data.lock_5)}</td></tr>
+                ${summaryRows || '<tr><td colspan="2">لا توجد بيانات إضافية.</td></tr>'}
             </table>
+            ${customerRows ? `<h4 class="mini-title">بيانات العميل</h4><table class="detail-table">${customerRows}</table>` : ''}
+            ${countryRows ? `<h4 class="mini-title">رموز الدول</h4><table class="detail-table">${countryRows}</table>` : ''}
+            ${detailRows ? `<details><summary>عرض ${rawEntries.length} حقل (استجابة كاملة)</summary><table class="detail-table">${detailRows}</table></details>` : ''}
         `;
     };
 
