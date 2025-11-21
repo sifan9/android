@@ -21,18 +21,18 @@
         }
 
         .card {
-            width: min(480px, 92%);
-            background: rgba(10, 26, 43, 0.85);
-            border-radius: 18px;
-            padding: 32px 28px;
+            width: min(860px, 95%);
+            background: rgba(10, 26, 43, 0.88);
+            border-radius: 22px;
+            padding: 34px 32px;
             box-shadow: 0 25px 65px rgba(3, 9, 15, 0.7);
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
         }
 
         h1 {
-            margin-top: 0;
+            margin: 0 0 18px 0;
             font-weight: 600;
-            font-size: 1.6rem;
+            font-size: 1.65rem;
             text-align: center;
             letter-spacing: 0.03em;
         }
@@ -44,35 +44,53 @@
             font-weight: 500;
         }
 
-        input {
+        textarea {
             width: 100%;
-            padding: 12px 14px;
-            border-radius: 10px;
+            min-height: 130px;
+            padding: 14px 16px;
+            border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.15);
-            background: rgba(15, 31, 51, 0.9);
+            background: rgba(15, 31, 51, 0.92);
             color: #f7f8fa;
             font-size: 1rem;
             direction: ltr;
+            resize: vertical;
         }
 
-        input:focus {
+        textarea:focus {
             outline: none;
             border-color: #4db5ff;
             box-shadow: 0 0 0 3px rgba(77, 181, 255, 0.25);
         }
 
+        .input-hint {
+            margin-top: 6px;
+            font-size: 0.84rem;
+            color: #9fbed3;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .controls button {
+            flex: 1;
+            min-width: 160px;
+        }
+
         button {
-            width: 100%;
             padding: 12px;
-            margin-top: 16px;
             border: none;
             border-radius: 10px;
             background: linear-gradient(135deg, #4db5ff, #31a3f0);
             color: #041322;
-            font-size: 1.05rem;
+            font-size: 1.02rem;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
         }
 
         button:disabled {
@@ -83,6 +101,17 @@
         button:not(:disabled):hover {
             transform: translateY(-1px);
             box-shadow: 0 10px 25px rgba(62, 150, 230, 0.4);
+        }
+
+        .ghost-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #dce9fb;
+            box-shadow: none;
+        }
+
+        .ghost-btn:not(:disabled):hover {
+            box-shadow: 0 0 0 1px rgba(77, 181, 255, 0.4);
         }
 
         .status {
@@ -101,35 +130,106 @@
         }
 
         .result {
-            margin-top: 20px;
-            border-radius: 12px;
-            background: rgba(4, 19, 34, 0.7);
-            padding: 18px;
+            margin-top: 22px;
+            border-radius: 16px;
+            background: rgba(4, 19, 34, 0.78);
+            padding: 20px 18px;
+        }
+
+        .result[hidden] {
             display: none;
         }
 
-        .result table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.95rem;
+        .result-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
         }
 
-        .result th,
-        .result td {
-            padding: 10px 8px;
+        .result-toolbar span {
+            font-size: 0.95rem;
+            color: #9fbed3;
+        }
+
+        .result-list {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .result-card {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(3, 11, 19, 0.9);
+            padding: 16px;
+        }
+
+        .result-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            justify-content: space-between;
+        }
+
+        .result-head-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+
+        .imei-label {
+            border-radius: 8px;
+            padding: 4px 10px;
+            background: rgba(77, 181, 255, 0.18);
+            color: #b9dfff;
+            font-size: 0.85rem;
+        }
+
+        .imei-value {
+            direction: ltr;
+            letter-spacing: 0.04em;
+        }
+
+        .result-body {
+            margin-top: 14px;
+        }
+
+        .result-message {
+            margin: 0 0 10px 0;
+            font-size: 0.95rem;
+            color: #9fbed3;
+        }
+
+        .result-message.error {
+            color: #ff8b8b;
+        }
+
+        .result-body table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        .result-body th,
+        .result-body td {
+            padding: 8px 6px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            text-align: left;
             direction: ltr;
         }
 
-        .result th {
+        .result-body th {
             text-align: right;
             color: #9fbed3;
             width: 40%;
             font-weight: 500;
         }
 
-        .result td {
+        .result-body td {
             color: #f5f8fc;
             font-weight: 600;
         }
@@ -145,38 +245,36 @@
 <body>
 <main class="card">
     <h1>استعلام بيانات Motorola عبر IMEI</h1>
-    <label for="imei">أدخل رقم IMEI (‏15 رقماً)</label>
-    <input type="text" id="imei" maxlength="15" placeholder="مثال: 352168100479194" inputmode="numeric" autocomplete="off">
-    <button id="lookup-btn">استعلام الآن</button>
+    <label for="imei-input">أدخل قائمة أرقام IMEI (‏15 رقماً لكل جهاز)</label>
+    <textarea id="imei-input" placeholder="مثال:
+352168100479194
+352440510620631
+352168109999999"></textarea>
+    <p class="input-hint">يمكنك إدخال عدة IMEI مفصولين بمسافة، فاصلة، أو سطر جديد.</p>
+    <div class="controls">
+        <button type="button" id="paste-btn" class="ghost-btn">لصق من الحافظة</button>
+        <button type="button" id="lookup-btn">استعلام الآن</button>
+    </div>
     <div id="status" class="status"></div>
-    <section id="result" class="result">
-        <table>
-            <tbody>
-            <tr><th>IMEI</th><td id="res-imei"></td></tr>
-            <tr><th>Model</th><td id="res-model"></td></tr>
-            <tr><th>Unlock Code</th><td id="res-code"></td></tr>
-            <tr><th>Lock 4</th><td id="res-lock4"></td></tr>
-            <tr><th>Lock 5</th><td id="res-lock5"></td></tr>
-            <tr><th>Message</th><td id="res-message"></td></tr>
-            </tbody>
-        </table>
+    <section id="results-wrapper" class="result" hidden>
+        <div class="result-toolbar">
+            <span id="result-count"></span>
+            <button type="button" id="copy-all-btn" class="ghost-btn">نسخ كل النتائج</button>
+        </div>
+        <div id="results-container" class="result-list"></div>
     </section>
     <p class="footer-note">يتم جلب البيانات مباشرة من خدمة Motorola الرسمية عبر سكربت general-unlocker.</p>
 </main>
 
 <script>
-    const imeiInput = document.getElementById('imei');
-    const btn = document.getElementById('lookup-btn');
+    const imeiInput = document.getElementById('imei-input');
+    const lookupBtn = document.getElementById('lookup-btn');
+    const pasteBtn = document.getElementById('paste-btn');
     const statusBox = document.getElementById('status');
-    const resultBox = document.getElementById('result');
-    const fields = {
-        imei: document.getElementById('res-imei'),
-        model: document.getElementById('res-model'),
-        code: document.getElementById('res-code'),
-        lock4: document.getElementById('res-lock4'),
-        lock5: document.getElementById('res-lock5'),
-        message: document.getElementById('res-message')
-    };
+    const resultsWrapper = document.getElementById('results-wrapper');
+    const resultsContainer = document.getElementById('results-container');
+    const copyAllBtn = document.getElementById('copy-all-btn');
+    const resultCount = document.getElementById('result-count');
 
     const apiBase = 'proxy.php?imei=';
 
@@ -186,63 +284,167 @@
     };
 
     const toggleLoading = (isLoading) => {
-        btn.disabled = isLoading;
-        btn.textContent = isLoading ? '... جاري الجلب' : 'استعلام الآن';
+        lookupBtn.disabled = isLoading;
+        pasteBtn.disabled = isLoading;
+        lookupBtn.textContent = isLoading ? '... جارٍ المعالجة' : 'استعلام الآن';
     };
 
-    const renderResult = (data) => {
-        fields.imei.textContent = data.imei ?? '-';
-        fields.model.textContent = data.model ?? '-';
-        fields.code.textContent = data.code ?? '-';
-        fields.lock4.textContent = data.lock_4 ?? '-';
-        fields.lock5.textContent = data.lock_5 ?? '-';
-        fields.message.textContent = data.message ?? '-';
-        resultBox.style.display = 'block';
+    const escapeHtml = (value) => {
+        if (value === null || value === undefined || value === '') {
+            return '-';
+        }
+        return String(value).replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        }[char]));
     };
 
-    const hideResult = () => {
-        resultBox.style.display = 'none';
+    const parseImeis = (raw) => {
+        const matches = raw.match(/\d{15}/g);
+        if (!matches) {
+            return [];
+        }
+        return [...new Set(matches)];
     };
 
-    const isValidImei = (value) => /^\d{15}$/.test(value);
+    const resetResults = () => {
+        resultsContainer.innerHTML = '';
+        resultsWrapper.hidden = true;
+        copyAllBtn.hidden = true;
+        resultCount.textContent = '';
+    };
 
-    btn.addEventListener('click', async () => {
-        const imei = imeiInput.value.trim();
-        hideResult();
+    const createResultCard = (imei) => {
+        const card = document.createElement('article');
+        card.className = 'result-card';
 
-        if (!isValidImei(imei)) {
-            setStatus('يرجى إدخال رقم IMEI صحيح مكوّن من 15 رقماً.', 'error');
+        const head = document.createElement('div');
+        head.className = 'result-head';
+
+        const headInfo = document.createElement('div');
+        headInfo.className = 'result-head-info';
+        const label = document.createElement('span');
+        label.className = 'imei-label';
+        label.textContent = 'IMEI';
+        const value = document.createElement('strong');
+        value.className = 'imei-value';
+        value.textContent = imei;
+        headInfo.append(label, value);
+
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'ghost-btn';
+        copyBtn.textContent = 'نسخ النتيجة';
+        copyBtn.disabled = true;
+
+        head.append(headInfo, copyBtn);
+        card.appendChild(head);
+
+        const body = document.createElement('div');
+        body.className = 'result-body';
+        body.textContent = 'جارٍ الاستعلام ...';
+        card.appendChild(body);
+
+        return {card, copyBtn, body};
+    };
+
+    const renderSuccess = (cardObj, data) => {
+        cardObj.body.innerHTML = `
+            <p class="result-message">${escapeHtml(data.message ?? 'Success (API)')}</p>
+            <table>
+                <tr><th>IMEI</th><td>${escapeHtml(data.imei)}</td></tr>
+                <tr><th>Model</th><td>${escapeHtml(data.model)}</td></tr>
+                <tr><th>Unlock Code</th><td>${escapeHtml(data.code)}</td></tr>
+                <tr><th>Lock 4</th><td>${escapeHtml(data.lock_4)}</td></tr>
+                <tr><th>Lock 5</th><td>${escapeHtml(data.lock_5)}</td></tr>
+            </table>
+        `;
+    };
+
+    const renderError = (cardObj, message) => {
+        cardObj.body.innerHTML = `<p class="result-message error">${escapeHtml(message)}</p>`;
+    };
+
+    const copyJson = async (payload, label) => {
+        try {
+            await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+            setStatus(`تم نسخ ${label}.`, 'success');
+        } catch (error) {
+            setStatus('تعذر نسخ البيانات. يرجى السماح بالوصول إلى الحافظة.', 'error');
+        }
+    };
+
+    const fetchForImei = async (imei) => {
+        const response = await fetch(apiBase + encodeURIComponent(imei), {cache: 'no-store'});
+        if (!response.ok) {
+            throw new Error('تعذر الوصول إلى الخدمة');
+        }
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        return data;
+    };
+
+    lookupBtn.addEventListener('click', async () => {
+        const imeis = parseImeis(imeiInput.value);
+        resetResults();
+
+        if (!imeis.length) {
+            setStatus('يرجى إدخال رقم أو أكثر بصيغة IMEI صحيحة (15 رقماً).', 'error');
             return;
         }
 
+        setStatus(`سيتم الاستعلام عن ${imeis.length} IMEI ...`);
         toggleLoading(true);
-        setStatus('جارٍ جلب البيانات ...');
+        const collected = [];
 
-        try {
-            const response = await fetch(apiBase + encodeURIComponent(imei), {cache: 'no-store'});
-            if (!response.ok) {
-                throw new Error('تعذر الوصول إلى الخدمة');
+        for (const imei of imeis) {
+            const cardObj = createResultCard(imei);
+            resultsContainer.appendChild(cardObj.card);
+            resultsWrapper.hidden = false;
+
+            try {
+                const data = await fetchForImei(imei);
+                collected.push(data);
+                renderSuccess(cardObj, data);
+                cardObj.copyBtn.disabled = false;
+                cardObj.copyBtn.addEventListener('click', () => copyJson(data, `نتيجة IMEI ${imei}`));
+            } catch (error) {
+                const errPayload = {imei, error: error.message || 'خطأ غير معروف'};
+                collected.push(errPayload);
+                renderError(cardObj, errPayload.error);
+                cardObj.copyBtn.disabled = false;
+                cardObj.copyBtn.addEventListener('click', () => copyJson(errPayload, `نتيجة IMEI ${imei}`));
             }
-
-            const data = await response.json();
-            if (data.error) {
-                setStatus(data.error, 'error');
-                return;
-            }
-
-            renderResult(data);
-            setStatus('تم جلب البيانات بنجاح.', 'success');
-        } catch (error) {
-            setStatus('حدث خطأ أثناء الاتصال بالخدمة. حاول مجدداً لاحقاً.', 'error');
-            console.error(error);
-        } finally {
-            toggleLoading(false);
         }
+
+        if (collected.length) {
+            resultCount.textContent = `عدد النتائج: ${collected.length}`;
+            copyAllBtn.hidden = false;
+            copyAllBtn.onclick = () => copyJson(collected, 'كل النتائج');
+            setStatus('اكتملت العملية.', 'success');
+        } else {
+            setStatus('لم يتم العثور على بيانات.', 'error');
+        }
+
+        toggleLoading(false);
     });
 
-    imeiInput.addEventListener('keyup', (event) => {
-        if (event.key === 'Enter') {
-            btn.click();
+    pasteBtn.addEventListener('click', async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (!text) {
+                setStatus('الحافظة فارغة حالياً.', 'error');
+                return;
+            }
+            imeiInput.value = text;
+            setStatus('تم لصق البيانات من الحافظة.', 'success');
+        } catch (error) {
+            setStatus('تعذر قراءة الحافظة. تأكد من منح المتصفح الصلاحية.', 'error');
         }
     });
 </script>
