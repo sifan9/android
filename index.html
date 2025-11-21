@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استعلام بيانات IMEI لهواتف Motorola</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: "Cairo", "Tahoma", sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #1c4677, #0a1a2b);
+            color: #f7f8fa;
+        }
+
+        .card {
+            width: min(480px, 92%);
+            background: rgba(10, 26, 43, 0.85);
+            border-radius: 18px;
+            padding: 32px 28px;
+            box-shadow: 0 25px 65px rgba(3, 9, 15, 0.7);
+            backdrop-filter: blur(8px);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-weight: 600;
+            font-size: 1.6rem;
+            text-align: center;
+            letter-spacing: 0.03em;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(15, 31, 51, 0.9);
+            color: #f7f8fa;
+            font-size: 1rem;
+            direction: ltr;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #4db5ff;
+            box-shadow: 0 0 0 3px rgba(77, 181, 255, 0.25);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 16px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #4db5ff, #31a3f0);
+            color: #041322;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        button:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(62, 150, 230, 0.4);
+        }
+
+        .status {
+            min-height: 24px;
+            margin-top: 18px;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .status.error {
+            color: #ff8b8b;
+        }
+
+        .status.success {
+            color: #81f4a2;
+        }
+
+        .result {
+            margin-top: 20px;
+            border-radius: 12px;
+            background: rgba(4, 19, 34, 0.7);
+            padding: 18px;
+            display: none;
+        }
+
+        .result table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        .result th,
+        .result td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: left;
+            direction: ltr;
+        }
+
+        .result th {
+            text-align: right;
+            color: #9fbed3;
+            width: 40%;
+            font-weight: 500;
+        }
+
+        .result td {
+            color: #f5f8fc;
+            font-weight: 600;
+        }
+
+        .footer-note {
+            margin-top: 18px;
+            font-size: 0.8rem;
+            text-align: center;
+            color: #7d94a8;
+        }
+    </style>
+</head>
+<body>
+<main class="card">
+    <h1>استعلام بيانات Motorola عبر IMEI</h1>
+    <label for="imei">أدخل رقم IMEI (‏15 رقماً)</label>
+    <input type="text" id="imei" maxlength="15" placeholder="مثال: 352168100479194" inputmode="numeric" autocomplete="off">
+    <button id="lookup-btn">استعلام الآن</button>
+    <div id="status" class="status"></div>
+    <section id="result" class="result">
+        <table>
+            <tbody>
+            <tr><th>IMEI</th><td id="res-imei"></td></tr>
+            <tr><th>Model</th><td id="res-model"></td></tr>
+            <tr><th>Unlock Code</th><td id="res-code"></td></tr>
+            <tr><th>Lock 4</th><td id="res-lock4"></td></tr>
+            <tr><th>Lock 5</th><td id="res-lock5"></td></tr>
+            <tr><th>Message</th><td id="res-message"></td></tr>
+            </tbody>
+        </table>
+    </section>
+    <p class="footer-note">يتم جلب البيانات مباشرة من خدمة Motorola الرسمية عبر سكربت general-unlocker.</p>
+</main>
+
+<script>
+    const imeiInput = document.getElementById('imei');
+    const btn = document.getElementById('lookup-btn');
+    const statusBox = document.getElementById('status');
+    const resultBox = document.getElementById('result');
+    const fields = {
+        imei: document.getElementById('res-imei'),
+        model: document.getElementById('res-model'),
+        code: document.getElementById('res-code'),
+        lock4: document.getElementById('res-lock4'),
+        lock5: document.getElementById('res-lock5'),
+        message: document.getElementById('res-message')
+    };
+
+    const apiBase = 'https://general-unlocker.com/testsifan/index.php?Data=';
+
+    const setStatus = (message, type = '') => {
+        statusBox.textContent = message;
+        statusBox.className = `status ${type}`;
+    };
+
+    const toggleLoading = (isLoading) => {
+        btn.disabled = isLoading;
+        btn.textContent = isLoading ? '... جاري الجلب' : 'استعلام الآن';
+    };
+
+    const renderResult = (data) => {
+        fields.imei.textContent = data.imei ?? '-';
+        fields.model.textContent = data.model ?? '-';
+        fields.code.textContent = data.code ?? '-';
+        fields.lock4.textContent = data.lock_4 ?? '-';
+        fields.lock5.textContent = data.lock_5 ?? '-';
+        fields.message.textContent = data.message ?? '-';
+        resultBox.style.display = 'block';
+    };
+
+    const hideResult = () => {
+        resultBox.style.display = 'none';
+    };
+
+    const isValidImei = (value) => /^\d{15}$/.test(value);
+
+    btn.addEventListener('click', async () => {
+        const imei = imeiInput.value.trim();
+        hideResult();
+
+        if (!isValidImei(imei)) {
+            setStatus('يرجى إدخال رقم IMEI صحيح مكوّن من 15 رقماً.', 'error');
+            return;
+        }
+
+        toggleLoading(true);
+        setStatus('جارٍ جلب البيانات ...');
+
+        try {
+            const response = await fetch(apiBase + imei, {cache: 'no-store'});
+            if (!response.ok) {
+                throw new Error('تعذر الوصول إلى الخدمة');
+            }
+
+            const data = await response.json();
+            if (data.error) {
+                setStatus(data.error, 'error');
+                return;
+            }
+
+            renderResult(data);
+            setStatus('تم جلب البيانات بنجاح.', 'success');
+        } catch (error) {
+            setStatus('حدث خطأ أثناء الاتصال بالخدمة. حاول مجدداً لاحقاً.', 'error');
+            console.error(error);
+        } finally {
+            toggleLoading(false);
+        }
+    });
+
+    imeiInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') {
+            btn.click();
+        }
+    });
+</script>
+</body>
+</html>
