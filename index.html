@@ -528,9 +528,53 @@
         cardObj.body.innerHTML = `<p class="result-message error">${escapeHtml(message)}</p>`;
     };
 
-    const copyJson = async (payload, label) => {
+    const formatResultText = (payload) => {
+        if (!payload || typeof payload !== 'object') {
+            return JSON.stringify(payload, null, 2);
+        }
+
+        if (payload.error) {
+            return `IMEI: ${payload.imei ?? '-'}\nError: ${payload.error}`;
+        }
+
+        const lines = [
+            `IMEI: ${payload.imei ?? '-'}`,
+            `Model: ${payload.model ?? '-'}`,
+            `Carrier: ${payload.carrier ?? '-'}`,
+            `Country: ${payload.country ?? '-'}`,
+            `Master Service Lock: ${payload.unlock_code ?? '-'}`,
+            `Lock 4: ${payload.lock_4 ?? '-'}`,
+            `Lock 5: ${payload.lock_5 ?? '-'}`,
+            `Status: ${payload.status ?? '-'}`,
+            `Device Type: ${payload.device_type ?? '-'}`,
+            `APC: ${payload.apc ?? '-'}`,
+            `Message: ${payload.message ?? '-'}`
+        ];
+
+        const formatSection = (title, obj) => {
+            if (!obj || typeof obj !== 'object') return;
+            const entries = Object.entries(obj).filter(([, value]) => value && value !== 'NO');
+            if (!entries.length) return;
+            lines.push(``, `${title}:`);
+            entries.forEach(([key, value]) => {
+                lines.push(`  - ${key.replace(/_/g, ' ')}: ${value}`);
+            });
+        };
+
+        formatSection('Customer', payload.customer);
+        formatSection('Country Codes', payload.country_codes);
+
+        return lines.join('\n');
+    };
+
+    const copyResultText = async (payload, label) => {
         try {
-            await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+            const text = Array.isArray(payload)
+                ? payload
+                    .map((item, index) => `#${index + 1}\n${formatResultText(item)}`)
+                    .join('\n\n------------------------------\n\n')
+                : formatResultText(payload);
+            await navigator.clipboard.writeText(text);
             setStatus(`تم نسخ ${label}.`, 'success');
         } catch (error) {
             setStatus('تعذر نسخ البيانات. يرجى السماح بالوصول إلى الحافظة.', 'error');
@@ -582,7 +626,7 @@
                 collected.push(data);
                 renderSuccess(cardObj, data);
                 cardObj.copyBtn.disabled = false;
-                cardObj.copyBtn.addEventListener('click', () => copyJson(data, `نتيجة IMEI ${imei}`));
+                cardObj.copyBtn.addEventListener('click', () => copyResultText(data, `نتيجة IMEI ${imei}`));
                 cardObj.copyPairBtn.disabled = false;
                 cardObj.copyPairBtn.addEventListener('click', () => copyImeiCode(data));
             } catch (error) {
@@ -590,7 +634,7 @@
                 collected.push(errPayload);
                 renderError(cardObj, errPayload.error);
                 cardObj.copyBtn.disabled = false;
-                cardObj.copyBtn.addEventListener('click', () => copyJson(errPayload, `نتيجة IMEI ${imei}`));
+                cardObj.copyBtn.addEventListener('click', () => copyResultText(errPayload, `نتيجة IMEI ${imei}`));
                 cardObj.copyPairBtn.disabled = true;
             }
         }
@@ -598,7 +642,7 @@
         if (collected.length) {
             resultCount.textContent = `عدد النتائج: ${collected.length}`;
             copyAllBtn.hidden = false;
-            copyAllBtn.onclick = () => copyJson(collected, 'كل النتائج');
+            copyAllBtn.onclick = () => copyResultText(collected, 'كل النتائج');
             setStatus('اكتملت العملية.', 'success');
         } else {
             setStatus('لم يتم العثور على بيانات.', 'error');
