@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استعلام بيانات IMEI لهواتف Motorola</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: "Cairo", "Tahoma", sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #1c4677, #0a1a2b);
+            color: #f7f8fa;
+        }
+
+        .card {
+            width: min(860px, 95%);
+            background: rgba(10, 26, 43, 0.88);
+            border-radius: 22px;
+            padding: 34px 32px;
+            box-shadow: 0 25px 65px rgba(3, 9, 15, 0.7);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            margin: 0 0 18px 0;
+            font-weight: 600;
+            font-size: 1.65rem;
+            text-align: center;
+            letter-spacing: 0.03em;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 130px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(15, 31, 51, 0.92);
+            color: #f7f8fa;
+            font-size: 1rem;
+            direction: ltr;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4db5ff;
+            box-shadow: 0 0 0 3px rgba(77, 181, 255, 0.25);
+        }
+
+        .input-hint {
+            margin-top: 6px;
+            font-size: 0.84rem;
+            color: #9fbed3;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .controls button {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #4db5ff, #31a3f0);
+            color: #041322;
+            font-size: 1.02rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        button:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(62, 150, 230, 0.4);
+        }
+
+        .ghost-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #dce9fb;
+            box-shadow: none;
+        }
+
+        .ghost-btn:not(:disabled):hover {
+            box-shadow: 0 0 0 1px rgba(77, 181, 255, 0.4);
+        }
+
+        .status {
+            min-height: 24px;
+            margin-top: 18px;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .status.error {
+            color: #ff8b8b;
+        }
+
+        .status.success {
+            color: #81f4a2;
+        }
+
+        .result {
+            margin-top: 22px;
+            border-radius: 16px;
+            background: rgba(4, 19, 34, 0.78);
+            padding: 20px 18px;
+        }
+
+        .result[hidden] {
+            display: none;
+        }
+
+        .result-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .result-toolbar span {
+            font-size: 0.95rem;
+            color: #9fbed3;
+        }
+
+        .result-list {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .result-card {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(3, 11, 19, 0.9);
+            padding: 16px;
+        }
+
+        .result-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            justify-content: space-between;
+        }
+
+        .result-head-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+
+        .imei-label {
+            border-radius: 8px;
+            padding: 4px 10px;
+            background: rgba(77, 181, 255, 0.18);
+            color: #b9dfff;
+            font-size: 0.85rem;
+        }
+
+        .imei-value {
+            direction: ltr;
+            letter-spacing: 0.04em;
+        }
+
+        .result-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .result-actions button {
+            flex: 1 1 140px;
+        }
+
+        .result-body {
+            margin-top: 14px;
+        }
+
+        .result-message {
+            margin: 0 0 10px 0;
+            font-size: 0.95rem;
+            color: #9fbed3;
+        }
+
+        .result-message.error {
+            color: #ff8b8b;
+        }
+
+        .result-body table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        .summary-table,
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        .summary-table th,
+        .summary-table td,
+        .detail-table th,
+        .detail-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            direction: ltr;
+        }
+
+        .summary-table th,
+        .detail-table th {
+            text-align: right;
+            color: #9fbed3;
+            width: 40%;
+            font-weight: 500;
+        }
+
+        .summary-table td,
+        .detail-table td {
+            color: #f5f8fc;
+            font-weight: 600;
+        }
+
+        .mini-title {
+            margin: 16px 0 6px;
+            font-size: 0.9rem;
+            color: #9fbed3;
+            font-weight: 600;
+        }
+
+        details {
+            margin-top: 16px;
+        }
+
+        details summary {
+            cursor: pointer;
+            color: #b9dfff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        details summary::marker {
+            color: #4db5ff;
+        }
+
+        code {
+            font-family: "Fira Code", "Consolas", monospace;
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        .footer-note {
+            margin-top: 18px;
+            font-size: 0.8rem;
+            text-align: center;
+            color: #7d94a8;
+        }
+    </style>
+</head>
+<body>
+<main class="card">
+    <h1>استعلام بيانات Motorola عبر IMEI</h1>
+    <label for="imei-input">أدخل قائمة أرقام IMEI (‏15 رقماً لكل جهاز)</label>
+    <textarea id="imei-input" placeholder="مثال:
+352168100479194
+352440510620631
+352168109999999"></textarea>
+    <p class="input-hint">يمكنك إدخال عدة IMEI مفصولين بمسافة، فاصلة، أو سطر جديد.</p>
+    <div class="controls">
+        <button type="button" id="paste-btn" class="ghost-btn">لصق من الحافظة</button>
+        <button type="button" id="lookup-btn">استعلام الآن</button>
+    </div>
+    <div id="status" class="status"></div>
+    <section id="results-wrapper" class="result" hidden>
+        <div class="result-toolbar">
+            <span id="result-count"></span>
+            <button type="button" id="copy-all-btn" class="ghost-btn">نسخ كل النتائج</button>
+        </div>
+        <div id="results-container" class="result-list"></div>
+    </section>
+    <p class="footer-note">يتم جلب البيانات مباشرة من خدمة Motorola الرسمية عبر سكربت general-unlocker.</p>
+</main>
+
+<script>
+    const imeiInput = document.getElementById('imei-input');
+    const lookupBtn = document.getElementById('lookup-btn');
+    const pasteBtn = document.getElementById('paste-btn');
+    const statusBox = document.getElementById('status');
+    const resultsWrapper = document.getElementById('results-wrapper');
+    const resultsContainer = document.getElementById('results-container');
+    const copyAllBtn = document.getElementById('copy-all-btn');
+    const resultCount = document.getElementById('result-count');
+
+    const apiBase = 'proxy.php?imei=';
+    const summaryFieldDefs = [
+        {key: 'model', label: 'موديل الجهاز'},
+        {key: 'carrier', label: 'شركة / ناقل الجهاز'},
+        {key: 'country', label: 'الدولة'},
+        {key: 'unlock_code', label: 'كود الفتح'},
+        {key: 'lock_4', label: 'Lock 4'},
+        {key: 'lock_5', label: 'Lock 5'},
+        {key: 'status', label: 'حالة الضمان'},
+        {key: 'device_type', label: 'نوع الجهاز'},
+        {key: 'apc', label: 'APC'},
+    ];
+    const customerLabels = {
+        ship_to: 'Ship To',
+        sold_to: 'Sold To',
+        direct_ship: 'Direct Ship',
+    };
+    const countryCodeLabels = {
+        ship: 'Country To Ship',
+        direct: 'Direct Ship Code',
+        warranty: 'Warranty Country',
+    };
+    const detailLabels = {
+        response_code: 'رمز الاستجابة',
+        response_message: 'رسالة الاستجابة',
+        serial_no: 'Serial Number',
+        serial_no_type: 'نوع الرقم',
+        status_code: 'رمز الحالة',
+        master_service_lock: 'Master Service Lock',
+        master_lock_code: 'Master Lock Code',
+        onetime_lock: 'One-Time Lock',
+        lock_4: 'Lock 4',
+        lock_5: 'Lock 5',
+        deviceunlockcode: 'Device Unlock Code',
+        service_password: 'Service Password',
+        device_type: 'نوع الجهاز',
+        carrier_model_info: 'Carrier Model Info',
+        external_marketing_name: 'اسم التسويق',
+        country_to_ship: 'Country to Ship',
+        direct_ship_country_code: 'Direct Ship Country Code',
+        warranty_country_code: 'Warranty Country Code',
+        ship_to_cust_name: 'Ship To Customer',
+        sold_to_cust_name: 'Sold To Customer',
+        direct_ship_cust_name: 'Direct Ship Customer',
+        apc: 'APC',
+        status: 'Status',
+    };
+
+    const setStatus = (message, type = '') => {
+        statusBox.textContent = message;
+        statusBox.className = `status ${type}`;
+    };
+
+    const toggleLoading = (isLoading) => {
+        lookupBtn.disabled = isLoading;
+        pasteBtn.disabled = isLoading;
+        lookupBtn.textContent = isLoading ? '... جارٍ المعالجة' : 'استعلام الآن';
+    };
+
+    const escapeHtml = (value) => {
+        if (value === null || value === undefined || value === '') {
+            return '-';
+        }
+        return String(value).replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        }[char]));
+    };
+
+    const formatKey = (key) => detailLabels[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+
+    const stringifyValue = (value) => {
+        if (value === null || value === undefined || value === '') {
+            return '-';
+        }
+        if (Array.isArray(value) || typeof value === 'object') {
+            try {
+                return JSON.stringify(value, null, 2);
+            } catch (error) {
+                return String(value);
+            }
+        }
+        return String(value);
+    };
+
+    const parseImeis = (raw) => {
+        const matches = raw.match(/\d{15}/g);
+        if (!matches) {
+            return [];
+        }
+        return [...new Set(matches)];
+    };
+
+    const resetResults = () => {
+        resultsContainer.innerHTML = '';
+        resultsWrapper.hidden = true;
+        copyAllBtn.hidden = true;
+        resultCount.textContent = '';
+    };
+
+    const createResultCard = (imei) => {
+        const card = document.createElement('article');
+        card.className = 'result-card';
+
+        const head = document.createElement('div');
+        head.className = 'result-head';
+
+        const headInfo = document.createElement('div');
+        headInfo.className = 'result-head-info';
+        const label = document.createElement('span');
+        label.className = 'imei-label';
+        label.textContent = 'IMEI';
+        const value = document.createElement('strong');
+        value.className = 'imei-value';
+        value.textContent = imei;
+        headInfo.append(label, value);
+
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'ghost-btn';
+        copyBtn.textContent = 'نسخ النتيجة';
+        copyBtn.disabled = true;
+
+        const copyPairBtn = document.createElement('button');
+        copyPairBtn.type = 'button';
+        copyPairBtn.className = 'ghost-btn';
+        copyPairBtn.textContent = 'نسخ IMEI + الكود';
+        copyPairBtn.disabled = true;
+
+        const actions = document.createElement('div');
+        actions.className = 'result-actions';
+        actions.append(copyBtn, copyPairBtn);
+
+        head.append(headInfo, actions);
+        card.appendChild(head);
+
+        const body = document.createElement('div');
+        body.className = 'result-body';
+        body.textContent = 'جارٍ الاستعلام ...';
+        card.appendChild(body);
+
+        return {card, copyBtn, copyPairBtn, body};
+    };
+
+    const renderSuccess = (cardObj, data) => {
+        const summaryRows = summaryFieldDefs
+            .map(({key, label}) => {
+                const value = data[key];
+                if (value === null || value === undefined || value === '') {
+                    return '';
+                }
+                return `<tr><th>${label}</th><td>${escapeHtml(value).replace(/\n/g, '<br>')}</td></tr>`;
+            })
+            .filter(Boolean)
+            .join('');
+
+        const customerRows = data.customer
+            ? Object.entries(data.customer)
+                .filter(([, value]) => value)
+                .map(([key, value]) => `<tr><th>${customerLabels[key] ?? key}</th><td>${escapeHtml(value)}</td></tr>`)
+                .join('')
+            : '';
+
+        const countryRows = data.country_codes
+            ? Object.entries(data.country_codes)
+                .filter(([, value]) => value)
+                .map(([key, value]) => `<tr><th>${countryCodeLabels[key] ?? key}</th><td>${escapeHtml(value)}</td></tr>`)
+                .join('')
+            : '';
+
+        const rawEntries = data.raw && typeof data.raw === 'object'
+            ? Object.entries(data.raw)
+            : [];
+
+        const detailRows = rawEntries
+            .map(([key, value]) => {
+                const printable = escapeHtml(stringifyValue(value)).replace(/\n/g, '<br>');
+                return `<tr><th>${formatKey(key)}</th><td>${printable}</td></tr>`;
+            })
+            .join('');
+
+        cardObj.body.innerHTML = `
+            <p class="result-message">${escapeHtml(data.message ?? 'تم جلب البيانات بنجاح.')}</p>
+            <table class="summary-table">
+                <tr><th>IMEI</th><td>${escapeHtml(data.imei)}</td></tr>
+                ${summaryRows || '<tr><td colspan="2">لا توجد بيانات إضافية.</td></tr>'}
+            </table>
+            ${customerRows ? `<h4 class="mini-title">بيانات العميل</h4><table class="detail-table">${customerRows}</table>` : ''}
+            ${countryRows ? `<h4 class="mini-title">رموز الدول</h4><table class="detail-table">${countryRows}</table>` : ''}
+            ${detailRows ? `<details><summary>عرض ${rawEntries.length} حقل (استجابة كاملة)</summary><table class="detail-table">${detailRows}</table></details>` : ''}
+        `;
+    };
+
+    const renderError = (cardObj, message) => {
+        cardObj.body.innerHTML = `<p class="result-message error">${escapeHtml(message)}</p>`;
+    };
+
+    const formatResultText = (payload) => {
+        if (!payload || typeof payload !== 'object') {
+            return JSON.stringify(payload, null, 2);
+        }
+
+        if (payload.error) {
+            return `IMEI: ${payload.imei ?? '-'}\nError: ${payload.error}`;
+        }
+
+        const lines = [
+            `IMEI: ${payload.imei ?? '-'}`,
+            `Model: ${payload.model ?? '-'}`,
+            `Carrier: ${payload.carrier ?? '-'}`,
+            `Country: ${payload.country ?? '-'}`,
+            `Master Service Lock: ${payload.unlock_code ?? '-'}`,
+            `Lock 4: ${payload.lock_4 ?? '-'}`,
+            `Lock 5: ${payload.lock_5 ?? '-'}`,
+            `Status: ${payload.status ?? '-'}`,
+            `Device Type: ${payload.device_type ?? '-'}`,
+            `APC: ${payload.apc ?? '-'}`,
+            `Message: ${payload.message ?? '-'}`
+        ];
+
+        const formatSection = (title, obj) => {
+            if (!obj || typeof obj !== 'object') return;
+            const entries = Object.entries(obj).filter(([, value]) => value && value !== 'NO');
+            if (!entries.length) return;
+            lines.push(``, `${title}:`);
+            entries.forEach(([key, value]) => {
+                lines.push(`  - ${key.replace(/_/g, ' ')}: ${value}`);
+            });
+        };
+
+        formatSection('Customer', payload.customer);
+        formatSection('Country Codes', payload.country_codes);
+
+        return lines.join('\n');
+    };
+
+    const copyResultText = async (payload, label) => {
+        try {
+            const text = Array.isArray(payload)
+                ? payload
+                    .map((item, index) => `#${index + 1}\n${formatResultText(item)}`)
+                    .join('\n\n------------------------------\n\n')
+                : formatResultText(payload);
+            await navigator.clipboard.writeText(text);
+            setStatus(`تم نسخ ${label}.`, 'success');
+        } catch (error) {
+            setStatus('تعذر نسخ البيانات. يرجى السماح بالوصول إلى الحافظة.', 'error');
+        }
+    };
+
+    const copyImeiCode = async (data) => {
+        const content = `IMEI: ${data.imei}\nMaster Service Lock: ${data.unlock_code}`;
+        try {
+            await navigator.clipboard.writeText(content);
+            setStatus('تم نسخ IMEI + الكود.', 'success');
+        } catch (error) {
+            setStatus('تعذر نسخ البيانات. يرجى السماح بالوصول إلى الحافظة.', 'error');
+        }
+    };
+
+    const fetchForImei = async (imei) => {
+        const response = await fetch(apiBase + encodeURIComponent(imei), {cache: 'no-store'});
+        if (!response.ok) {
+            throw new Error('تعذر الوصول إلى الخدمة');
+        }
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        return data;
+    };
+
+    lookupBtn.addEventListener('click', async () => {
+        const imeis = parseImeis(imeiInput.value);
+        resetResults();
+
+        if (!imeis.length) {
+            setStatus('يرجى إدخال رقم أو أكثر بصيغة IMEI صحيحة (15 رقماً).', 'error');
+            return;
+        }
+
+        setStatus(`سيتم الاستعلام عن ${imeis.length} IMEI ...`);
+        toggleLoading(true);
+        const collected = [];
+
+        for (const imei of imeis) {
+            const cardObj = createResultCard(imei);
+            resultsContainer.appendChild(cardObj.card);
+            resultsWrapper.hidden = false;
+
+            try {
+                const data = await fetchForImei(imei);
+                collected.push(data);
+                renderSuccess(cardObj, data);
+                cardObj.copyBtn.disabled = false;
+                cardObj.copyBtn.addEventListener('click', () => copyResultText(data, `نتيجة IMEI ${imei}`));
+                cardObj.copyPairBtn.disabled = false;
+                cardObj.copyPairBtn.addEventListener('click', () => copyImeiCode(data));
+            } catch (error) {
+                const errPayload = {imei, error: error.message || 'خطأ غير معروف'};
+                collected.push(errPayload);
+                renderError(cardObj, errPayload.error);
+                cardObj.copyBtn.disabled = false;
+                cardObj.copyBtn.addEventListener('click', () => copyResultText(errPayload, `نتيجة IMEI ${imei}`));
+                cardObj.copyPairBtn.disabled = true;
+            }
+        }
+
+        if (collected.length) {
+            resultCount.textContent = `عدد النتائج: ${collected.length}`;
+            copyAllBtn.hidden = false;
+            copyAllBtn.onclick = () => copyResultText(collected, 'كل النتائج');
+            setStatus('اكتملت العملية.', 'success');
+        } else {
+            setStatus('لم يتم العثور على بيانات.', 'error');
+        }
+
+        toggleLoading(false);
+    });
+
+    pasteBtn.addEventListener('click', async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (!text) {
+                setStatus('الحافظة فارغة حالياً.', 'error');
+                return;
+            }
+            imeiInput.value = text;
+            setStatus('تم لصق البيانات من الحافظة.', 'success');
+        } catch (error) {
+            setStatus('تعذر قراءة الحافظة. تأكد من منح المتصفح الصلاحية.', 'error');
+        }
+    });
+</script>
+</body>
+</html>
